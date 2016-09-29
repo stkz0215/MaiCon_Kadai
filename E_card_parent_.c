@@ -13,6 +13,13 @@
 #include "lcd_func.h"
 #include <machine.h>
 
+#define EMP 1 // çš‡å¸ emperor
+#define SLV 1 // å¥´éš· slave
+#define CMN 2 // å¹³æ°‘ commoner
+
+#define WIN 1
+#define LOSE 2
+#define DRAW 3
 
 unsigned char RevDt;
 char flag;
@@ -31,100 +38,147 @@ void abort(void);
 
 void main(void)
 {
-	lcd_init();
-	IO.PCR1 = 0xFF; // SW1`SW4‚Í“ü—Í
-	IO.PMR1.BYTE = 0xF0; // SW1`4‚ğŠ„‚è‚İ‚Ég—p
-	IEGR1.BYTE = 0x7F;	 // —§‚¿ã‚ª‚è‚ÉŠ„‚è‚İ
-	IENR1.BYTE = 0x1F;	 // Š„‹–‰Â
-	
-	SCI3_2.SCR3.BIT.RE = 0;	// óM‹Ö~
-	SCI3_2.SMR.BYTE = 0x00; // ’²•à“¯ŠúAƒNƒƒbƒN20MB
-	SCI3_2.BRR = 64;
-	SCI3_2.SSR.BIT.OER = 0;	// ŠeíƒGƒ‰[‚Ìƒtƒ‰ƒO‚ğ0‚É
-	SCI3_2.SSR.BIT.FER = 0;
-	SCI3_2.SSR.BIT.PER = 0;
-		
-	wait(2);
-	
-	SCI3_2.SCR3.BIT.RE = 1;
-	SCI3_2.SCR3.BIT.RIE = 1;
-	
-	//IO.PDR3.BYTE = 0xAA;
-	while(1) {
-		// qi‘Šèj‚ªƒJ[ƒh‚ğŒˆ‚ß‚é
-		lcd_xy(1,1);
-		lcd_puts("Waiting...      ");
-		flag = 0;
-		while(flag == 0);
-		
-		// ei©•ªj‚ªƒJ[ƒh‚ğŒˆ‚ß‚é
-		lcd_xy(1,1);
-		lcd_puts("Push the button!");
-		lcd_xy(1,2);
-		lcd_puts("1:º³Ã² 2-4:Í²Ğİ ");
-		
-		flag = 0;
-		while(flag == 0)	// ©•ª‚ÌƒJ[ƒhŒˆ’è‘Ò‚¿
-		//IENR1.BYTE = 0x10;	// Š„‹Ö~
-		
-		lcd_xy(1,1);
-		lcd_puts("                ");
-		lcd_xy(1,2);
-		lcd_puts("                ");
-		
-		lcd_xy(1,1);
-		lcd_dataout(button_parent);
-		lcd_xy(1,2);
-		lcd_dataout(button_child);
-		
-		while(1);
-	}
+    int result;             // å¯¾æˆ¦ã®çµæœã‚’æ ¼ç´
+    
+    lcd_init();
+    IO.PCR1 = 0xFF;         // SW1ã€œSW4ã¯å…¥åŠ›
+    IO.PMR1.BYTE = 0xF8;    // SW1ã€œ4ã‚’å‰²ã‚Šè¾¼ã¿ã«ä½¿ç”¨,TXDå‡ºåŠ›ç«¯å­ã®è¨­å®š
+    IEGR1.BYTE = 0x7F;      // ç«‹ã¡ä¸ŠãŒã‚Šã«å‰²ã‚Šè¾¼ã¿
+    IENR1.BYTE = 0x1F;      // ã‚¹ã‚¤ãƒƒãƒå‰²è¾¼è¨±å¯
+    
+    SCI3_2.SCR3.BIT.RE = 0; // å—ä¿¡ç¦æ­¢
+    SCI3_2.SCR3.BIT.TE = 0; // é€ä¿¡ç¦æ­¢
+    SCI3_2.SMR.BYTE = 0x00; // èª¿æ­©åŒæœŸã€ã‚¯ãƒ­ãƒƒã‚¯20MB
+    SCI3_2.BRR = 64;
+    SCI3_2.TDR = 0x00;      // é€ä¿¡ãƒ‡ãƒ¼ã‚¿åˆæœŸåŒ–
+    SCI3_2.SSR.BIT.OER = 0; // å„ç¨®ã‚¨ãƒ©ãƒ¼ã®ãƒ•ãƒ©ã‚°ã‚’0ã«
+    SCI3_2.SSR.BIT.FER = 0;
+    SCI3_2.SSR.BIT.PER = 0;
+        
+    wait(2);
+    
+    result = DRAW;
+    while(result == DRAW) {
+        // å­ï¼ˆç›¸æ‰‹ï¼‰ãŒã‚«ãƒ¼ãƒ‰ã‚’æ±ºã‚ã‚‹
+        lcd_xy(1,1);
+        lcd_puts("Waiting....     ");
+        flag = 0;
+        SCI3_2.SCR3.BIT.RE = 1;     // å—ä¿¡å‰²è¾¼è¨±å¯
+        SCI3_2.SCR3.BIT.RIE = 1;
+        while(flag == 0);           // å—ä¿¡å¾…ã¡
+        SCI3_2.SCR3.BIT.RE = 0;     // å—ä¿¡å‰²è¾¼ç¦æ­¢
+        SCI3_2.SCR3.BIT.RIE = 0;
+        
+        // è¦ªï¼ˆè‡ªåˆ†ï¼‰ãŒã‚«ãƒ¼ãƒ‰ã‚’æ±ºã‚ã‚‹
+        lcd_xy(1,1);
+        lcd_puts("Push the button!");
+        lcd_xy(1,2);
+        lcd_puts("1:ï½ºï½³ï¾ƒï½² 2-4:ï¾ï½²ï¾ï¾ ");
+        while(flag == 1)    // è‡ªåˆ†ã®ã‚«ãƒ¼ãƒ‰æ±ºå®šå¾…ã¡
+        
+        lcd_xy(1,1);
+        lcd_puts("                ");
+        lcd_xy(1,2);
+        lcd_puts("                ");
+        lcd_xy(1,1);
+        
+        // å‹ã¡è² ã‘ã®åˆ¤å®š
+        if(button_child == SLV) {
+            if(button_parent == CMN)
+                result = WIN;
+            else
+                result = LOSE;
+        }
+        else if(button_child == CMN) {
+            if(button_parent == EMP)
+                result = WIN;
+            else
+                result = DRAW;
+        }
+        
+        // çµæœè¡¨ç¤ºãƒ»ç›¸æ‰‹ã«çµæœé€ä¿¡
+        lcd_xy(1,1);
+        switch(result) {
+        case WIN:
+            lcd_puts("You win!!");
+            break;
+        case LOSE:
+            lcd_puts("You lose...");
+            break;
+        case DRAW:
+            lcd_puts("Draw");
+            break;
+        }
+        
+        SCI3_2.SCR3.BIT.TE = 1;    // é€ä¿¡è¨±å¯
+        SCI3_2.TDR = result;       // ç›¸æ‰‹ã«çµæœã‚’é€ä¿¡
+        SCI3_2.SCR3.BIT.TE = 0;    // é€ä¿¡ç¦æ­¢
+        
+        wait(1000);
+    }
 
 }
 
-// ‘Ò‹@ŠÖ”
+// å¾…æ©Ÿé–¢æ•°
 void wait(unsigned int count)
 {
-	unsigned int i, j;
-	
-	for(i=0; i<=count; i++) {
-		for(j=0; j<=2000; j++) {
-		} 
-	}
+    unsigned int i, j;
+    
+    for(i=0; i<=count; i++) {
+        for(j=0; j<=2000; j++) {
+        } 
+    }
 }
 
 
 void func_sci(void)
 {
-	if(SCI3_2.SSR.BIT.RDRF == 1) {
-		button_child = SCI3_2.RDR;
-		flag = 1;
-	}
-	else {
-		SCI3_2.SSR.BIT.OER = 0;
-		SCI3_2.SSR.BIT.FER = 0;
-		SCI3_2.SSR.BIT.PER = 0;
-	}
+    if(SCI3_2.SSR.BIT.RDRF == 1) {
+        button_child = SCI3_2.RDR;
+        
+        if(button_child != SLV)
+            button_child = CMN;
+            
+        flag = 1;
+    }
+    else {
+        SCI3_2.SSR.BIT.OER = 0;
+        SCI3_2.SSR.BIT.FER = 0;
+        SCI3_2.SSR.BIT.PER = 0;
+    }
 }
 
 void func_SW(char num_sw) {
-	button_parent = num_sw;
-	flag = 1;
-	
-	switch(num_sw) {
-	case 1:
-		IRR1.BIT.IRRI0 = 0;
-		break;
-	case 2:
-		IRR1.BIT.IRRI1 = 0;
-		break;
-	case 3:
-		IRR1.BIT.IRRI2 = 0;
-		break;
-	case 4:
-		IRR1.BIT.IRRI3 = 0;
-		break;
-	}
+    if(flag == 1) {
+        if (num_sw == 1)
+            button_parent = EMP;
+        else
+            button_parent = CMN;
+            
+        flag = 2;
+    
+    
+        switch(num_sw) {
+        case 1:
+            IENR1.BIT.IEN0 = 0;     
+            break;
+        case 2:
+            IENR1.BIT.IEN1 = 0;
+            break;
+        case 3:
+            IENR1.BIT.IEN2 = 0;
+            break;
+        case 4:
+            IENR1.BIT.IEN3 = 0;
+            break;
+            
+        }
+    }
+    
+    IRR1.BIT.IRRI0 = 0;
+    IRR1.BIT.IRRI1 = 0;
+    IRR1.BIT.IRRI2 = 0;
+    IRR1.BIT.IRRI3 = 0;
 }
 
 #ifdef __cplusplus
